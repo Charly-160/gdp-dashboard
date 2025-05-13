@@ -1,0 +1,100 @@
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Configuración de la página
+st.set_page_config(page_title="Precios de Gasolina LATAM", layout="wide")
+
+# Título principal
+st.title(" Análisis de precios de gasolina en América Latina y el Mundo")
+
+# Cargar datos
+df = pd.read_excel("Gasolina latam.xlsx")
+
+# Limpiar y renombrar columnas
+df.drop(['notes_ids', 'source_id'], axis=1, inplace=True)
+df.rename(columns={'Años__ESTANDAR': 'años', 'País__ESTANDAR': 'Pais'}, inplace=True)
+
+# Mostrar resumen de datos
+with st.expander(" Información del DataFrame"):
+    st.write(df.head())
+    st.write(df.info())
+    st.write("Valores nulos por columna:")
+    st.write(df.isnull().sum())
+
+# Filtros interactivos
+st.sidebar.header("Filtros")
+pais_seleccionado = st.sidebar.selectbox("Selecciona un país", sorted(df["Pais"].unique()))
+anio_seleccionado = st.sidebar.slider("Selecciona un año", int(df["años"].min()), int(df["años"].max()), 2023)
+tipo_combustible = st.sidebar.selectbox("Tipo de combustible", df["Tipo de combustible"].unique())
+componente = st.sidebar.selectbox("Componente", df["Componente"].unique())
+
+# Análisis 1: México
+st.subheader(" Evolución anual del precio al consumidor de gasolina regular en México")
+suma_anual_mexico = df[
+    (df['Pais'] == 'México') &
+    (df['Tipo de combustible'] == 'Gasolina corriente') &
+    (df['Componente'] == 'PRECIO FINAL (CONSUMIDOR)')
+].groupby('años')['value'].sum()
+
+fig1, ax1 = plt.subplots(figsize=(10, 5))
+suma_anual_mexico.plot(kind='bar', color='skyblue', ax=ax1)
+ax1.set_title('Precio anual de gasolina en México (2000–2023)')
+ax1.set_xlabel('Año')
+ax1.set_ylabel('Precio (USD)')
+ax1.grid(axis='y', linestyle='--', alpha=0.7)
+st.pyplot(fig1)
+
+# Análisis 2: Mundo
+st.subheader(" Precio anual de gasolina regular a nivel mundial")
+suma_mundo = df[
+    (df['Pais'] == 'Mundo') &
+    (df['Tipo de combustible'] == 'Gasolina corriente') &
+    (df['Componente'] == 'PRECIO FINAL (CONSUMIDOR)')
+].groupby('años')['value'].sum()
+
+fig2, ax2 = plt.subplots(figsize=(10, 5))
+suma_mundo.plot(kind='bar', color='skyblue', ax=ax2)
+ax2.set_title('Precio anual de gasolina a nivel mundial (2000–2023)')
+ax2.set_xlabel('Año')
+ax2.set_ylabel('Precio (USD)')
+ax2.grid(axis='y', linestyle='--', alpha=0.7)
+st.pyplot(fig2)
+
+# Análisis 3: Comparación entre países (2023)
+st.subheader(" Precio anual de gasolina por país (2023)")
+gasolina_2023 = df[
+    (df['Tipo de combustible'] == 'Gasolina corriente') &
+    (df['años'] == 2023) &
+    (df['Componente'] == 'PRECIO FINAL (CONSUMIDOR)')
+].groupby('Pais')['value'].sum().sort_values(ascending=False)
+
+fig3, ax3 = plt.subplots(figsize=(12, 6))
+gasolina_2023.plot(kind='bar', color='skyblue', ax=ax3)
+ax3.set_title('Precio anual por país (2023)')
+ax3.set_xlabel('País')
+ax3.set_ylabel('Precio (USD)')
+ax3.tick_params(axis='x', rotation=90)
+ax3.grid(axis='y', linestyle='--', alpha=0.7)
+st.pyplot(fig3)
+
+# Análisis 4: Componentes de un país específico
+st.subheader(f" Desglose por componente para {pais_seleccionado} en {anio_seleccionado}")
+componente_pais = df[
+    (df['Tipo de combustible'] == 'Gasolina corriente') &
+    (df['años'] == anio_seleccionado) &
+    (df['Pais'] == pais_seleccionado)
+].groupby('Componente')['value'].sum()
+
+fig4, ax4 = plt.subplots(figsize=(10, 5))
+componente_pais.plot(kind='bar', color='skyblue', ax=ax4)
+ax4.set_title(f"Componentes del precio de gasolina en {pais_seleccionado} ({anio_seleccionado})")
+ax4.set_xlabel('Componente')
+ax4.set_ylabel('Precio (USD)')
+ax4.tick_params(axis='x', rotation=45)
+ax4.grid(axis='y', linestyle='--', alpha=0.7)
+st.pyplot(fig4)
+
+# Créditos
+st.markdown("---")
+st.markdown(" Datos obtenidos del archivo 'Gasolina latam.xlsx'. Visualización realizada con [Streamlit](https://streamlit.io/).")
